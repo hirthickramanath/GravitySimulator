@@ -2,10 +2,9 @@
 #include "gravity.h"
 
 int main() {
-    menu();
     BODY b[2];
     PAIR p;
-    SETTINGS s = {0.01, 1000};
+    SETTINGS s = {3600, 8766};
     int choice = 0;
     int option = 0;
 
@@ -18,11 +17,16 @@ int main() {
             case 1:
                 printf("\n Available Predefined Simulations:\n 1. Sun-Earth System\n 2. Earth-Moon System\n 3. Sun-Jupiter System\n 4. Sun-Comet System\n 5. Binary Star System\n 6. Escape Velocity (Sun-Earth)\n");
                 scanf("%d", &option);
-                loadData(b, option);
-                physics(b, &p, &s, choice);
+                if (option >=1 && option <= 6) {
+                    physics(b, &p, &s, option);
+                }
+                else {
+                    printf("\n Invalid option. Please choose 1-6.\n");
+                }
                 break;
             case 2:
-                physics(b, &p, &s, choice);
+                option = 0;
+                physics(b, &p, &s, option);
                 break;
             case 3:
                 settings(&s);

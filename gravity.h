@@ -11,6 +11,7 @@ struct body {
     double y;
     double vx;
     double vy;
+    double v;
     double ax;
     double ay;
 };
@@ -24,6 +25,9 @@ struct pair {
     double f;
     double fx;
     double fy;
+    double KE;
+    double PE;
+    double TE;
     double eps;
 };
 
@@ -38,7 +42,7 @@ typedef struct simulationSettings SETTINGS;
 
 void loadData(BODY *, int);
 
-void file(void);
+void file(BODY *, PAIR *, SETTINGS *);
 
 void physics(BODY *, PAIR *, SETTINGS *, int);
 

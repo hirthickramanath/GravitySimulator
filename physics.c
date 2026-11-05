@@ -2,12 +2,12 @@
 #include <math.h>
 #include "gravity.h"
 
-void physics(BODY b[2], PAIR *p, SETTINGS *s, int choice) {
-    if (choice == 0){
+void physics(BODY b[2], PAIR *p, SETTINGS *s, int option) {
+    if (option == 0){
         for(int i=0; i<2; i++) {
             printf("\n Enter details for body %d:\n", i+1);
             printf(" Name: ");
-            scanf("%s", b[i].name);
+            scanf("%19s", b[i].name);
             printf(" Symbol: ");
             scanf(" %c", &b[i].symbol);
             printf(" Mass (kg): ");
@@ -22,9 +22,14 @@ void physics(BODY b[2], PAIR *p, SETTINGS *s, int choice) {
             scanf("%lf", &b[i].vy);
         }
     }
+    else {
+        loadData(b, option);
+    }
 
+    b[0].v = sqrt(b[0].vx * b[0].vx + b[0].vy * b[0].vy);
     b[0].ax = 0;
     b[0].ay = 0;
+    b[1].v = sqrt(b[1].vx * b[1].vx + b[1].vy * b[1].vy);
     b[1].ax = 0;
     b[1].ay = 0;
     p->dx = b[1].x - b[0].x;
@@ -38,11 +43,9 @@ void physics(BODY b[2], PAIR *p, SETTINGS *s, int choice) {
     b[0].ay += p->fy / b[0].mass;
     b[1].ax -= p->fx / b[1].mass;
     b[1].ay -= p->fy / b[1].mass;
+    p->KE = 0.5 * b[0].mass * (b[0].v * b[0].v) + 0.5 * b[1].mass * (b[1].v * b[1].v);
+    p->PE = -(G * b[0].mass * b[1].mass) / p->r;
+    p->TE = p->KE + p->PE;
 
-    for(int i=0; i<2; i++) {
-        b[i].vx += b[i].ax * s->dt;
-        b[i].vy += b[i].ay * s->dt;
-        b[i].x += b[i].vx * s->dt;
-        b[i].y += b[i].vy * s->dt;
-    }
+    file(b, p, s);
 }

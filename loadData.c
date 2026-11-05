@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
 #include "gravity.h"
 
 void loadData(BODY b[2], int option) {
@@ -28,14 +27,14 @@ void loadData(BODY b[2], int option) {
             b[0].x = 0;
             b[0].y = 0;
             b[0].vx = 0;
-            b[0].vy = 0;
+            b[0].vy = -12.4;
             strcpy(b[1].name, "Moon");
             b[1].symbol = 'M';
             b[1].mass = 7.348e22;
             b[1].x = 3.844e8;
             b[1].y = 0;
             b[1].vx = 0;
-            b[1].vy = 1022;
+            b[1].vy = 1012;
             break;
         case 3:
             strcpy(b[0].name, "Sun");
@@ -64,26 +63,26 @@ void loadData(BODY b[2], int option) {
             strcpy(b[1].name, "Comet");
             b[1].symbol = 'C';
             b[1].mass = 2.2e14;
-            b[1].x = 5.2e11;
-            b[1].y = -5.2e11 * tan(45 * M_PI / 180);
-            b[1].vx = -5.2e11 * tan(45 * M_PI / 180);
-            b[1].vy = sqrt(6.67430e-11 * (1.989e30 + 2.2e14) / sqrt(pow(5.2e11,2) + pow(-5.2e11 * tan(45 * M_PI / 180),2)));
+            b[1].x = 1.496e11;
+            b[1].y = 0;
+            b[1].vx = 0;
+            b[1].vy = 38460;
             break;
         case 5:
             strcpy(b[0].name, "Alpha");
             b[0].symbol = 'A';
             b[0].mass = 1.989e30;
-            b[0].x = -7.785e10;
+            b[0].x = -7.48e10;
             b[0].y = 0;
-            b[0].vx = -13070/2;
-            b[0].vy = 0;
+            b[0].vx = 0;
+            b[0].vy = -21060;
             strcpy(b[1].name, "Beta");
             b[1].symbol = 'B';
             b[1].mass = 1.989e30;
-            b[1].x = 7.785e10;
+            b[1].x = 7.48e10;
             b[1].y = 0;
-            b[1].vx = -13070/2;
-            b[1].vy = 0;
+            b[1].vx = 0;
+            b[1].vy = 21060;
             break;
         case 6:
             strcpy(b[0].name, "Sun");
@@ -99,6 +98,7 @@ void loadData(BODY b[2], int option) {
             b[1].x = 1.496e11;
             b[1].y = 0;
             b[1].vx = 0;
-            b[1].vy = 29780;
+            b[1].vy = 45000;
+            break;
     }
 }

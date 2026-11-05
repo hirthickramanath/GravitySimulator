@@ -35,8 +35,8 @@ typedef struct pair PAIR;
 
 struct simulationSettings {
     double dt;
-    double t;
     int steps;
+    double t;
 };
 
 typedef struct simulationSettings SETTINGS;

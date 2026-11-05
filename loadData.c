@@ -2,7 +2,7 @@
 #include <string.h>
 #include "gravity.h"
 
-void loadData(BODY b[2], int option) {
+void loadData(BODY *b, int option) {
     switch(option) {
         case 1:
             strcpy(b[0].name, "Sun");

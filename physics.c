@@ -2,7 +2,7 @@
 #include <math.h>
 #include "gravity.h"
 
-void physics(BODY b[2], PAIR *p, SETTINGS *s, int option) {
+void physics(BODY *b, PAIR *p, SETTINGS *s, int option) {
     FILE *fp;
 
     if (option == 0){

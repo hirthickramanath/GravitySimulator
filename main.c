@@ -4,7 +4,7 @@
 int main() {
     BODY b[2];
     PAIR p;
-    SETTINGS s = {3600, 8766};
+    SETTINGS s = {3600, 8766, 0};
     int choice = 0;
     int option = 0;
 

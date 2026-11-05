@@ -35,14 +35,13 @@ typedef struct pair PAIR;
 
 struct simulationSettings {
     double dt;
+    double t;
     int steps;
 };
 
 typedef struct simulationSettings SETTINGS;
 
 void loadData(BODY *, int);
-
-void file(BODY *, PAIR *, SETTINGS *);
 
 void physics(BODY *, PAIR *, SETTINGS *, int);
 

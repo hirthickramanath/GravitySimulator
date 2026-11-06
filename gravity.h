@@ -2,6 +2,12 @@
 #define GRAVITY_H
 
 #define G 6.67430e-11
+#define FPS 60
+#define SEC 30
+#define FRAMES (FPS * SEC)
+#define SCREEN_W 1100
+#define SCREEN_H 700
+#define STARS 250
 
 struct body {
     char name[20];
@@ -41,9 +47,23 @@ struct simulationSettings {
 
 typedef struct simulationSettings SETTINGS;
 
+struct frame {
+    double t;
+    double x[2];
+    double y[2];
+    double r;
+    double f;
+    double v;
+    double TE;
+};
+
+typedef struct frame FRAME;
+
 void loadData(BODY *, int);
 
 void physics(BODY *, PAIR *, SETTINGS *, int);
+
+void animate(const char *);
 
 void settings(SETTINGS *);
 

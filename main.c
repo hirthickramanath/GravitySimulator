@@ -18,7 +18,7 @@ int main() {
 
         switch(choice) {
             case 1:
-                printf("\n Available Predefined Simulations:\n 1. Sun-Earth System\n 2. Earth-Moon System\n 3. Sun-Jupiter System\n 4. Sun-Comet System\n 5. Binary Star System\n 6. Escape Velocity (Sun-Earth)\n Your choice: ");
+                printf("\n Available Predefined Simulations:\n 1. Sun-Earth System\n 2. Earth-Moon System\n 3. Sun-Jupiter System\n 4. Sun-Comet System\n 5. Binary Star System\n 6. Escape Velocity (Sun-Earth)\n 7. Back to Main Menu\n Your choice: ");
                 if (scanf("%d", &option) != 1) {
                     while (getchar() != '\n');
                     option = 0;
@@ -26,8 +26,11 @@ int main() {
                 if (option >=1 && option <= 6) {
                     physics(b, &p, &s, option);
                 }
+                else if (option == 7) {
+                    break;
+                }
                 else {
-                    printf("\n Invalid option. Please choose 1-6.\n");
+                    printf("\n Invalid option. Please choose 1-7.\n");
                 }
                 break;
             case 2:

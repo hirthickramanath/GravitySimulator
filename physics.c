@@ -86,4 +86,6 @@ void physics(BODY *b, PAIR *p, SETTINGS *s, int option) {
 
     fclose(fp);
     printf("\n Done: %d steps saved to CSV file.\n Starting the animation...\n", s->steps + 1);
+
+    animate("data.csv");
 }

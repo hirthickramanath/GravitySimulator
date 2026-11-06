@@ -179,11 +179,11 @@ void animate(const char *filename) {
         DrawText("GRAVITY SIMULATION", 20, 18, 24, RAYWHITE);
         DrawText(b[0].name, 20, 54, 20, col[0]);
         DrawText(b[1].name, 20 + MeasureText(b[0].name, 20) + 30, 54, 20, col[1]);
-        DrawText(TextFormat("Time      : %10.1f days", f[k].t / 86400.0), 20, 92, 20, LIGHTGRAY);
-        DrawText(TextFormat("Distance  : %10.3e m", f[k].r), 20, 118, 20, LIGHTGRAY);
-        DrawText(TextFormat("Force     : %10.3e N", f[k].f), 20, 144, 20, LIGHTGRAY);
-        DrawText(TextFormat("Speed     : %10.0f m/s", f[k].v), 20, 170, 20, LIGHTGRAY);
-        DrawText(TextFormat("Energy    : %10.3e J", f[k].TE), 20, 196, 20, LIGHTGRAY);
+        DrawText(TextFormat("Time     : %10.1f days", f[k].t / 86400.0), 20, 92, 20, LIGHTGRAY);
+        DrawText(TextFormat("Distance : %10.3e m", f[k].r), 20, 118, 20, LIGHTGRAY);
+        DrawText(TextFormat("Force    : %10.3e N", f[k].f), 20, 144, 20, LIGHTGRAY);
+        DrawText(TextFormat("Speed    : %10.0f m/s", f[k].v), 20, 170, 20, LIGHTGRAY);
+        DrawText(TextFormat("Energy   : %10.3e J", f[k].TE), 20, 196, 20, LIGHTGRAY);
 
         DrawRectangle(20, SCREEN_H - 40, SCREEN_W - 40, 8, (Color){ 40, 44, 60, 255 });
         DrawRectangle(20, SCREEN_H - 40, (SCREEN_W - 40) * (k + 1) / FRAMES, 8, SKYBLUE);

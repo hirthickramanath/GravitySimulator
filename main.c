@@ -1,53 +1,52 @@
 #include <stdio.h>
 #include "gravity.h"
 
-int main() {
-    BODY b[2];
-    PAIR p;
-    SETTINGS s = {3600, 8766, 0};
-    int choice = 0;
-    int option = 0;
+int main(void) {
+    SETTINGS s = {3600, 8766, 0, 1};
+    int screen = SCREEN_MAIN;
+    int previous = SCREEN_MAIN;
+    float fade = 1.0f;                /* dark overlay that fades out after a screen change */
 
-    printf("\n Welcome to the Gravity Simulation!\n");
-    do {
-        printf("\n Choose an option:\n 1. Load and Run Simulation\n 2. New Simulation\n 3. Simulation Settings\n 4. Exit\n Your choice: ");
-        if (scanf("%d", &choice) != 1) {
-            while (getchar() != '\n');
-            choice = 0;
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
+    SetTraceLogLevel(LOG_WARNING);
+    InitWindow(1100, 700, "Gravity Simulation");
+    SetWindowMinSize(800, 560);
+    SetExitKey(KEY_NULL);             /* ESC means Back, not quit */
+    SetTargetFPS(FPS);
+    HideCursor();                     /* we draw our own space cursor */
+    loadSounds();
+
+    while (screen != SCREEN_EXIT && !WindowShouldClose()) {
+        if (screen != previous) {     /* new screen: start typing in its first box, fade in */
+            focusedField = 0;
+            previous = screen;
+            fade = 1.0f;
         }
 
-        switch(choice) {
-            case 1:
-                printf("\n Available Predefined Simulations:\n 1. Sun-Earth System\n 2. Earth-Moon System\n 3. Sun-Jupiter System\n 4. Sun-Comet System\n 5. Binary Star System\n 6. Escape Velocity (Sun-Earth)\n 7. Back to Main Menu\n Your choice: ");
-                if (scanf("%d", &option) != 1) {
-                    while (getchar() != '\n');
-                    option = 0;
-                }
-                if (option >=1 && option <= 6) {
-                    physics(b, &p, &s, option);
-                }
-                else if (option == 7) {
-                    break;
-                }
-                else {
-                    printf("\n Invalid option. Please choose 1-7.\n");
-                }
-                break;
-            case 2:
-                option = 0;
-                physics(b, &p, &s, option);
-                break;
-            case 3:
-                settings(&s);
-                break;
-            case 4:
-                printf("\n Exiting...\n");
-                break;
-            default:
-                printf("\n Invalid option. Please try again.\n");
-                break;
-        }
-    } while (choice != 4);
+        BeginDrawing();
+        drawBackground();
 
+        switch (screen) {
+            case SCREEN_MAIN:     screen = drawMainMenu(); break;
+            case SCREEN_LIST:     screen = drawBodyList(&s); break;
+            case SCREEN_NEW:      screen = drawNewMenu(); break;
+            case SCREEN_FORM:     screen = drawNewForm(&s); break;
+            case SCREEN_SAVE:     screen = drawSaveScreen(); break;
+            case SCREEN_SETTINGS: screen = drawSettings(&s); break;
+            case SCREEN_RUN:      screen = drawRunScreen(); break;
+        }
+
+        if (fade > 0) {
+            DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(COL_BG_TOP, fade));
+            fade -= GetFrameTime() * 4.0f;            /* gone in a quarter of a second */
+        }
+        drawToast();
+        drawCursor();
+        EndDrawing();
+    }
+
+    unloadPlayback();
+    unloadSounds();
+    CloseWindow();
     return 0;
 }

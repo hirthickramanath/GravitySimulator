@@ -2,52 +2,76 @@
 #include <math.h>
 #include "gravity.h"
 
-void physics(BODY *b, PAIR *p, SETTINGS *s, int option) {
-    FILE *fp;
+/* picks dt and steps from the two bodies: one full orbit, using the vis-viva
+   equation for the orbit's size and Kepler's third law for its period.
+   If the bodies are escaping, runs long enough to travel 6 times the starting distance */
+void chooseTimeStep(BODY *b, SETTINGS *s) {
+    double dx = b[1].x - b[0].x;
+    double dy = b[1].y - b[0].y;
+    double dvx = b[1].vx - b[0].vx;
+    double dvy = b[1].vy - b[0].vy;
+    double r = sqrt(dx * dx + dy * dy);
+    double v2 = dvx * dvx + dvy * dvy;
+    double mu = G * (b[0].mass + b[1].mass);
+    double duration;
 
-    if (option == 0){
-        for(int i=0; i<2; i++) {
-            printf("\n Enter details for body %d:\n", i+1);
-            printf(" Name: ");
-            scanf("%19s", b[i].name);
-            printf(" Symbol: ");
-            scanf(" %c", &b[i].symbol);
-            printf(" Mass (kg): ");
-            scanf("%lf", &b[i].mass);
-            printf(" Initial X position (m): ");
-            scanf("%lf", &b[i].x);
-            printf(" Initial Y position (m): ");
-            scanf("%lf", &b[i].y);
-            printf(" Initial X velocity (m/s): ");
-            scanf("%lf", &b[i].vx);
-            printf(" Initial Y velocity (m/s): ");
-            scanf("%lf", &b[i].vy);
-        }
+    if (r == 0)
+        return;                                   /* runSimulation reports this case */
+
+    double inv_a = 2.0 / r - v2 / mu;
+    if (inv_a > 0) {
+        double a = 1.0 / inv_a;                   /* semi-major axis */
+        duration = 2.0 * PI * sqrt(a * a * a / mu);
     }
     else {
-        double presetDt[6] = {3600, 600, 86400, 43200, 3600, 3600};
-        int presetSteps[6] = {8766, 3934, 4332, 3800, 6200, 8766};
-
-        loadData(b, option);
-        s->dt = presetDt[option - 1];
-        s->steps = presetSteps[option - 1];
+        duration = 6.0 * r / sqrt(v2);
     }
+
+    s->steps = AUTO_STEPS;
+    s->dt = duration / AUTO_STEPS;
+}
+
+/* works out what kind of orbit the two bodies are on, before running anything.
+   *closest gets the closest distance they will reach (periapsis), in metres.
+   returns ORBIT_CLOSED, ORBIT_ESCAPE or ORBIT_COLLIDE */
+int classifyOrbit(const BODY *b, double *closest) {
+    double dx = b[1].x - b[0].x, dy = b[1].y - b[0].y;
+    double dvx = b[1].vx - b[0].vx, dvy = b[1].vy - b[0].vy;
+    double r = sqrt(dx * dx + dy * dy);
+    double mu = G * (b[0].mass + b[1].mass);
+    double energy = 0.5 * (dvx * dvx + dvy * dvy) - mu / r;   /* per unit mass */
+    double h = dx * dvy - dy * dvx;                             /* angular momentum per unit mass */
+    double e2 = 1.0 + 2.0 * energy * h * h / (mu * mu);         /* eccentricity squared */
+    double e = sqrt(e2 > 0 ? e2 : 0);
+
+    *closest = (h * h / mu) / (1.0 + e);
+    if (*closest < COLLIDE_DIST)
+        return ORBIT_COLLIDE;
+    if (energy >= 0)
+        return ORBIT_ESCAPE;
+    return ORBIT_CLOSED;
+}
+
+/* runs the whole simulation and writes every step to data.csv.
+   *drift gets the percentage change in total energy from the first step to the last.
+   returns the number of steps written, 0 if the bodies start at the same
+   position, -1 if the file can't be opened */
+int runSimulation(BODY *b, PAIR *p, SETTINGS *s, double *drift) {
+    FILE *fp;
+    double firstTE = 0;
+    double M = b[0].mass + b[1].mass;
 
     p->dx = b[1].x - b[0].x;
     p->dy = b[1].y - b[0].y;
     p->eps = sqrt(p->dx * p->dx + p->dy * p->dy) / 1000.0;
-    if (p->eps == 0) {
-        printf("\n The two bodies cannot start at the same position.\n");
-        return;
-    }
+    if (p->eps == 0)
+        return 0;
 
-    fp = fopen("data.csv", "w");
-    if (fp == NULL) {
-        perror("\n Error opening file!\n");
-        return;
-    }
+    fp = fopen(DATA_FILE, "w");
+    if (fp == NULL)
+        return -1;
 
-    fprintf(fp, "step,t,name,symbol,mass,x,y,r,v,f,TE\n");
+    fprintf(fp, "step,t,name,symbol,mass,x,y,vx,vy,r,v,f,KE,PE,TE\n");
 
     for(int step=0; step<=s->steps; step++) {
         s->t = step * s->dt;
@@ -68,12 +92,21 @@ void physics(BODY *b, PAIR *p, SETTINGS *s, int option) {
         b[0].ay += p->fy / b[0].mass;
         b[1].ax -= p->fx / b[1].mass;
         b[1].ay -= p->fy / b[1].mass;
-        p->KE = 0.5 * b[0].mass * (b[0].v * b[0].v) + 0.5 * b[1].mass * (b[1].v * b[1].v);
+
+        /* kinetic energy measured from the centre of mass, so a pair moving
+           together (like Earth + Moon) only counts its motion around each other */
+        double cvx = (b[0].mass * b[0].vx + b[1].mass * b[1].vx) / M;
+        double cvy = (b[0].mass * b[0].vy + b[1].mass * b[1].vy) / M;
+        p->KE = 0.5 * b[0].mass * ((b[0].vx - cvx) * (b[0].vx - cvx) + (b[0].vy - cvy) * (b[0].vy - cvy))
+              + 0.5 * b[1].mass * ((b[1].vx - cvx) * (b[1].vx - cvx) + (b[1].vy - cvy) * (b[1].vy - cvy));
         p->PE = -(G * b[0].mass * b[1].mass) / p->r;
         p->TE = p->KE + p->PE;
+        if (step == 0)
+            firstTE = p->TE;
 
         for(int i=0; i<2; i++) {
-            fprintf(fp, "%d,%.0f,%s,%c,%e,%e,%e,%e,%.4f,%e,%e\n", step, s->t, b[i].name, b[i].symbol, b[i].mass, b[i].x, b[i].y, p->r, b[i].v, p->f, p->TE);
+            fprintf(fp, "%d,%.0f,%s,%c,%e,%e,%e,%.4f,%.4f,%e,%.4f,%e,%e,%e,%e\n", step, s->t, b[i].name, b[i].symbol,
+                    b[i].mass, b[i].x, b[i].y, b[i].vx, b[i].vy, p->r, b[i].v, p->f, p->KE, p->PE, p->TE);
         }
 
         for(int i=0; i<2; i++) {
@@ -85,7 +118,6 @@ void physics(BODY *b, PAIR *p, SETTINGS *s, int option) {
     }
 
     fclose(fp);
-    printf("\n Done: %d steps saved to CSV file.\n Starting the animation...\n", s->steps + 1);
-
-    animate("data.csv");
+    *drift = (p->TE - firstTE) / fabs(firstTE) * 100.0;
+    return s->steps + 1;
 }

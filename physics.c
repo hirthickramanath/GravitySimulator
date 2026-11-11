@@ -1,11 +1,14 @@
+/* physics.c - the orbit check, the time step, and the simulation itself
+   Gravity Simulator - P L Hirthick Ramanath (26PT20), Svithin S (26PT35) */
+
 #include <stdio.h>
 #include <math.h>
 #include "gravity.h"
 
-/* picks dt and steps from the two bodies: one full orbit, using the vis-viva
-   equation for the orbit's size and Kepler's third law for its period.
-   If the bodies are escaping, runs long enough to travel 6 times the starting distance */
-void chooseTimeStep(BODY *b, SETTINGS *s) {
+/* looks at the starting state and says what kind of orbit it is. *closest gets the
+   closest the bodies will ever get. If s isn't NULL it also picks dt and steps:
+   one full orbit (Kepler's third law), or 6 times the starting distance if they escape */
+int checkOrbit(const BODY *b, SETTINGS *s, double *closest) {
     double dx = b[1].x - b[0].x;
     double dy = b[1].y - b[0].y;
     double dvx = b[1].vx - b[0].vx;
@@ -13,38 +16,33 @@ void chooseTimeStep(BODY *b, SETTINGS *s) {
     double r = sqrt(dx * dx + dy * dy);
     double v2 = dvx * dvx + dvy * dvy;
     double mu = G * (b[0].mass + b[1].mass);
-    double duration;
 
-    if (r == 0)
-        return;                                   /* runSimulation reports this case */
-
-    double inv_a = 2.0 / r - v2 / mu;
-    if (inv_a > 0) {
-        double a = 1.0 / inv_a;                   /* semi-major axis */
-        duration = 2.0 * PI * sqrt(a * a * a / mu);
-    }
-    else {
-        duration = 6.0 * r / sqrt(v2);
+    if (r == 0) {
+        *closest = 0;
+        return ORBIT_COLLIDE;
     }
 
-    s->steps = AUTO_STEPS;
-    s->dt = duration / AUTO_STEPS;
-}
-
-/* works out what kind of orbit the two bodies are on, before running anything.
-   *closest gets the closest distance they will reach (periapsis), in metres.
-   returns ORBIT_CLOSED, ORBIT_ESCAPE or ORBIT_COLLIDE */
-int classifyOrbit(const BODY *b, double *closest) {
-    double dx = b[1].x - b[0].x, dy = b[1].y - b[0].y;
-    double dvx = b[1].vx - b[0].vx, dvy = b[1].vy - b[0].vy;
-    double r = sqrt(dx * dx + dy * dy);
-    double mu = G * (b[0].mass + b[1].mass);
-    double energy = 0.5 * (dvx * dvx + dvy * dvy) - mu / r;   /* per unit mass */
-    double h = dx * dvy - dy * dvx;                             /* angular momentum per unit mass */
-    double e2 = 1.0 + 2.0 * energy * h * h / (mu * mu);         /* eccentricity squared */
+    double energy = v2 / 2 - mu / r;                      /* per kg */
+    double h = dx * dvy - dy * dvx;                       /* angular momentum per kg */
+    double e2 = 1 + 2 * energy * h * h / (mu * mu);       /* eccentricity squared */
     double e = sqrt(e2 > 0 ? e2 : 0);
 
-    *closest = (h * h / mu) / (1.0 + e);
+    if (s != NULL) {
+        double duration;
+        if (energy < 0) {
+            double a = -mu / (2 * energy);                /* size of the orbit, from vis-viva */
+            duration = 2 * PI * sqrt(a * a * a / mu);
+        }
+        else {
+            duration = 6 * r / sqrt(v2);
+        }
+        s->steps = AUTO_STEPS;
+        s->dt = duration / AUTO_STEPS;
+    }
+
+    *closest = (h * h / mu) / (1 + e);
+    if (energy >= 0 && dx * dvx + dy * dvy >= 0)
+        *closest = r;                                     /* moving apart and never coming back: this is as close as they get */
     if (*closest < COLLIDE_DIST)
         return ORBIT_COLLIDE;
     if (energy >= 0)
@@ -52,10 +50,8 @@ int classifyOrbit(const BODY *b, double *closest) {
     return ORBIT_CLOSED;
 }
 
-/* runs the whole simulation and writes every step to data.csv.
-   *drift gets the percentage change in total energy from the first step to the last.
-   returns the number of steps written, 0 if the bodies start at the same
-   position, -1 if the file can't be opened */
+/* runs the simulation and writes every step to data.csv; *drift gets the % change in energy.
+   returns the number of steps written, 0 if both start at the same place, -1 if the file won't open */
 int runSimulation(BODY *b, PAIR *p, SETTINGS *s, double *drift) {
     FILE *fp;
     double firstTE = 0;
@@ -93,20 +89,21 @@ int runSimulation(BODY *b, PAIR *p, SETTINGS *s, double *drift) {
         b[1].ax -= p->fx / b[1].mass;
         b[1].ay -= p->fy / b[1].mass;
 
-        /* kinetic energy measured from the centre of mass, so a pair moving
-           together (like Earth + Moon) only counts its motion around each other */
+        /* kinetic energy around the centre of mass, so Earth + Moon only counts their motion around each other */
         double cvx = (b[0].mass * b[0].vx + b[1].mass * b[1].vx) / M;
         double cvy = (b[0].mass * b[0].vy + b[1].mass * b[1].vy) / M;
-        p->KE = 0.5 * b[0].mass * ((b[0].vx - cvx) * (b[0].vx - cvx) + (b[0].vy - cvy) * (b[0].vy - cvy))
-              + 0.5 * b[1].mass * ((b[1].vx - cvx) * (b[1].vx - cvx) + (b[1].vy - cvy) * (b[1].vy - cvy));
+        double ux0 = b[0].vx - cvx;
+        double uy0 = b[0].vy - cvy;
+        double ux1 = b[1].vx - cvx;
+        double uy1 = b[1].vy - cvy;
+        p->KE = 0.5 * b[0].mass * (ux0 * ux0 + uy0 * uy0) + 0.5 * b[1].mass * (ux1 * ux1 + uy1 * uy1);
         p->PE = -(G * b[0].mass * b[1].mass) / p->r;
         p->TE = p->KE + p->PE;
         if (step == 0)
             firstTE = p->TE;
 
         for(int i=0; i<2; i++) {
-            fprintf(fp, "%d,%.0f,%s,%c,%e,%e,%e,%.4f,%.4f,%e,%.4f,%e,%e,%e,%e\n", step, s->t, b[i].name, b[i].symbol,
-                    b[i].mass, b[i].x, b[i].y, b[i].vx, b[i].vy, p->r, b[i].v, p->f, p->KE, p->PE, p->TE);
+            fprintf(fp, "%d,%.3f,%s,%c,%e,%e,%e,%.4f,%.4f,%e,%.4f,%e,%e,%e,%e\n", step, s->t, b[i].name, b[i].symbol, b[i].mass, b[i].x, b[i].y, b[i].vx, b[i].vy, p->r, b[i].v, p->f, p->KE, p->PE, p->TE);
         }
 
         for(int i=0; i<2; i++) {
@@ -118,6 +115,8 @@ int runSimulation(BODY *b, PAIR *p, SETTINGS *s, double *drift) {
     }
 
     fclose(fp);
-    *drift = (p->TE - firstTE) / fabs(firstTE) * 100.0;
+    *drift = 0;
+    if (firstTE != 0)
+        *drift = (p->TE - firstTE) / fabs(firstTE) * 100.0;
     return s->steps + 1;
 }

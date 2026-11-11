@@ -1,6 +1,6 @@
 # Gravity – 2D Gravitational Physics & Orbital Simulator
 
-**P L Hirthick Ramanath** (26PT20) · **Svithin S** (26PT35)
+**P L Hirthick Ramanath** · **Svithin S**
 Integrated M.Sc. Theoretical Computer Science, PSG College of Technology – Semester 1
 
 ## About
